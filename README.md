@@ -115,7 +115,7 @@ Consumer Loan Dataset (70K records, 2007–2014)
 
 The workflow pulls aggregated portfolio metrics from PostgreSQL every week, sends them to Groq LLaMA with a risk analyst prompt, and emails the AI-generated summary directly to the risk team — no manual action required.
 
-![n8n Workflow](assets/n8n_workflow.png)
+![n8n Workflow](assets/Workflow.png)
 
 **Sample AI-generated email output:**
 
