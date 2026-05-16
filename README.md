@@ -120,7 +120,7 @@ The workflow pulls aggregated portfolio metrics from PostgreSQL every week, send
 
 **Sample AI-generated email output:**
 
-![Triggered Email](assets/Triggered_mail.png)
+![Triggered Email](assets/Trigerred_mail.png)
 
 The AI identified:
 - 12.81% bad loan rate as a concentration risk flag
@@ -132,7 +132,7 @@ The AI identified:
 
 ### Workflow 2 — On-Demand Loan Decision Explanation
 
-**Flow:** `Webhook → Code → PostgreSQL → Code → HTTP Request (Groq) → Code → Respond to Webhook`
+**Flow:** `Postman(Question) → Code → PostgreSQL → Code → HTTP Request (Groq) → Code → Respond to Webhook`
 
 A risk manager or compliance officer sends a natural language question via POST request. The system fetches the relevant loan record from PostgreSQL, passes it to Groq LLaMA, and returns a plain-English explanation of why the loan is classified as risky — in under 3 seconds.
 
