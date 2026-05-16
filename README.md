@@ -119,7 +119,7 @@ The workflow pulls aggregated portfolio metrics from PostgreSQL every week, send
 
 **Sample AI-generated email output:**
 
-![Triggered Email](assets/triggered_mail.png)
+![Triggered Email](assets/Triggered_Mail.png)
 
 The AI identified:
 - 12.81% bad loan rate as a concentration risk flag
