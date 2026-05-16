@@ -1,0 +1,219 @@
+{
+  "name": "Loan Decision Explaination Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "loan-explain",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -720,
+        -64
+      ],
+      "id": "9c03653f-5d4a-4dc6-ad9c-77c7609247dc",
+      "name": "Webhook",
+      "webhookId": "631c90fd-b9ca-4110-b0c9-47f7ec73562f"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nconst question = body.question;\n\nconst match = question.match(/(?:loan_id\\s+|id\\s+)(\\d+)/i);\n\n\nconst loan_id = match ? parseInt(match[1]) : null;\n\nreturn {\n  loan_id: loan_id,\n  question: question\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        -64
+      ],
+      "id": "a8e31993-b048-4ac9-b258-fc06afedb3c1",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        576,
+        -64
+      ],
+      "id": "edeb7450-a842-497f-ab0f-4a34b4be4133",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, grade, interest_rate, dti, annual_inc, emp_length_int, purpose, income_category\nFROM loans_cleaned\n  \n\nWHERE id = {{ $json.loan_id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -224,
+        -64
+      ],
+      "id": "233e2df5-b9bd-4aa7-bce8-1b641bb3bc7a",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "cR73LDHph0YyEQu6",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const loan = $input.first().json;\nconst question = $('Code in JavaScript').first().json.question;\n\nconst prompt = `You are a financial risk analyst. A user has asked: \"${question}\". Loan details - ID: ${loan.id}, Grade: ${loan.grade}, Interest Rate: ${loan.interest_rate}%, DTI: ${loan.dti}%, Annual Income: ${loan.annual_inc}, Income Category: ${loan.income_category}, Employment Length: ${loan.emp_length_int} years, Purpose: ${loan.purpose}. Based on these details, explain the risk factors of this loan, identify key concerns, compare against a typical good loan profile, and give a human-readable summary in 4-5 sentences.`;\n\nreturn {\n  prompt: prompt,\n  loan_id: loan.id\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -16,
+        -64
+      ],
+      "id": "248d8ef1-7711-4854-b609-ff5381adfc08",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "llama-3.3-70b-versatile"
+            },
+            {
+              "name": "messages[0][role]",
+              "value": "user"
+            },
+            {
+              "name": "messages[0][content]",
+              "value": "=={{ $json.prompt }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        160,
+        -64
+      ],
+      "id": "1ae1f6cc-5cd7-4f57-9419-1505460186ef",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst explanation = response.choices[0].message.content;\n\n$input.first().json = explanation;\n\nreturn [{ json: { output: explanation } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        -64
+      ],
+      "id": "3cfbff31-e570-4d8b-900c-fed1f3ead740",
+      "name": "Code in JavaScript2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "577c4e72-fdd7-45b2-9b58-49375a7c0c44",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bfbda7f3b2df327c2cbc3a34430d56379e000d7da7338cef17ee806751d8ee57"
+  },
+  "id": "gqvOPsN3RJmqVHsu",
+  "tags": []
+}

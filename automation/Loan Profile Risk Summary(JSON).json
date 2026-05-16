@@ -1,0 +1,171 @@
+{
+  "name": "Loan Profile Risk Summary",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1040,
+        -240
+      ],
+      "id": "f95e93c0-3ec2-4594-9895-3edbc7c95a5c",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  COUNT(*) AS total_active_loans,\n  ROUND(100.0 * SUM(CASE WHEN loan_condition = 'Bad Loan' THEN 1 ELSE 0 END) / COUNT(*), 2) AS bad_loan_percentage,\n  ROUND(AVG(CASE WHEN grade IN ('D','E','F','G') THEN 1.0 ELSE 0 END) * 100, 2) AS high_risk_grade_percentage,\n  ROUND(AVG(CASE WHEN grade = 'A' THEN interest_rate END), 2) AS avg_rate_grade_A,\n  ROUND(AVG(CASE WHEN grade = 'B' THEN interest_rate END), 2) AS avg_rate_grade_B,\n  ROUND(AVG(CASE WHEN grade = 'C' THEN interest_rate END), 2) AS avg_rate_grade_C,\n  ROUND(AVG(CASE WHEN grade = 'D' THEN interest_rate END), 2) AS avg_rate_grade_D,\n  ROUND(AVG(CASE WHEN grade = 'E' THEN interest_rate END), 2) AS avg_rate_grade_E,\n  ROUND(AVG(CASE WHEN grade = 'F' THEN interest_rate END), 2) AS avg_rate_grade_F,\n  ROUND(AVG(CASE WHEN grade = 'G' THEN interest_rate END), 2) AS avg_rate_grade_G,\n  ROUND(100.0 * SUM(CASE WHEN region = 'CANNUGHT' AND loan_condition = 'Bad Loan' THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN region = 'CANNUGHT' THEN 1 ELSE 0 END), 0), 2) AS default_pct_cannught,\n  ROUND(100.0 * SUM(CASE WHEN region = 'LEINSTER' AND loan_condition = 'Bad Loan' THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN region = 'LEINSTER' THEN 1 ELSE 0 END), 0), 2) AS default_pct_leinster,\n  ROUND(100.0 * SUM(CASE WHEN region = 'MUNSTER' AND loan_condition = 'Bad Loan' THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN region = 'MUNSTER' THEN 1 ELSE 0 END), 0), 2) AS default_pct_munster,\n  ROUND(100.0 * SUM(CASE WHEN region = 'NORTHERN-IRL' AND loan_condition = 'Bad Loan' THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN region = 'NORTHERN-IRL' THEN 1 ELSE 0 END), 0), 2) AS default_pct_northern_irl,\n  ROUND(100.0 * SUM(CASE WHEN region = 'ULSTER' AND loan_condition = 'Bad Loan' THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN region = 'ULSTER' THEN 1 ELSE 0 END), 0), 2) AS default_pct_ulster\nFROM loans_cleaned;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -784,
+        -240
+      ],
+      "id": "be2d10f9-6e73-4478-a19d-b9c9d4552dbe",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "cR73LDHph0YyEQu6",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -368,
+        -240
+      ],
+      "id": "45c3eca6-0b69-48bd-b2c0-c7c4ea646847",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst summary = `LOAN PORTFOLIO RISK METRICS: Total Active Loans: ${data.total_active_loans}, Bad Loan Percentage: ${data.bad_loan_percentage}%, High Risk Grade Percentage (D/E/F/G): ${data.high_risk_grade_percentage}%, Avg Interest Rate: A=${data.avg_rate_grade_a}%, B=${data.avg_rate_grade_b}%, C=${data.avg_rate_grade_c}%, D=${data.avg_rate_grade_d}%, E=${data.avg_rate_grade_e}%, F=${data.avg_rate_grade_f}%, G=${data.avg_rate_grade_g}%, Region Default %: Cannught=${data.default_pct_cannught}%, Leinster=${data.default_pct_leinster}%, Munster=${data.default_pct_munster}%, N.IRL=${data.default_pct_northern_irl}%, Ulster=${data.default_pct_ulster}%`;\n\nreturn [{\n  json: {\n    model: \"llama-3.3-70b-versatile\",\n    messages: [\n      {\"role\": \"system\", \"content\": \"You are a senior loan risk analyst. Analyze portfolio metrics and summarize risk exposure, red flags and actionable insights.\"},\n      {\"role\": \"user\", \"content\": summary}\n    ]\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -576,
+        -240
+      ],
+      "id": "33f2676d-8e86-433a-8398-74e96d0a5f29",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "sendTo": "Itzfaiz99@gmail.com ",
+        "subject": "Weekly Loan Portfolio Risk Summary",
+        "message": "=={{ $('HTTP Request').item.json.choices[0].message.content.replace(/\\*\\*(.*?)\\*\\*/g, '<b>$1</b>').replace(/\\\\n/g, '<br>').replace(/\\n/g, '<br>') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -160,
+        -240
+      ],
+      "id": "eb4e9b5c-5c4f-4714-a3ea-e620fe9f435e",
+      "name": "Send a message",
+      "webhookId": "35327422-2689-454c-89c7-75f4656c1c5b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "aU18zlizs8A3bWF8",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "424bfad0-ee8e-4feb-afd8-808c4df6b064",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bfbda7f3b2df327c2cbc3a34430d56379e000d7da7338cef17ee806751d8ee57"
+  },
+  "id": "AOMnP2O4ypVLTfX9",
+  "tags": []
+}
