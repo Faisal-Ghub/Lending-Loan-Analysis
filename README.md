@@ -4,7 +4,7 @@ An end-to-end data analytics project covering SQL-based ETL, exploratory data an
 
 ---
 
-## Problem Statement
+## Problem Statement h
 
 Consumer lenders operate loan portfolios worth hundreds of millions without real-time visibility into risk concentration, regional default patterns, or borrower-level risk factors. Risk managers rely on manual reporting cycles — missing critical signals until it is too late to act.
 
